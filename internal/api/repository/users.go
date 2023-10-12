@@ -19,7 +19,7 @@ type Users interface {
 	Get(c context.Context, id string) (*models.User, error)
 	GetByEmail(c context.Context, email string) (*models.User, error)
 	Delete(c context.Context, id string) error
-	Update(c context.Context, user *models.User) (*models.User, error)
+	Update(c context.Context, id string, updateUserDto *schemas.UpdateUser) (*models.User, error)
 }
 
 type usersMongo struct {
@@ -106,20 +106,17 @@ func (u *usersMongo) Delete(c context.Context, id string) error {
 	return err
 }
 
-func (u *usersMongo) Update(c context.Context, user *models.User) (*models.User, error) {
-	objectId, err := primitive.ObjectIDFromHex(user.ID)
+func (u *usersMongo) Update(c context.Context, id string, updateUserDto *schemas.UpdateUser) (*models.User, error) {
+	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
-	updateResult, err := u.collection.UpdateOne(c, bson.M{"_id": objectId}, bson.M{"$set": schemas.UpdateUser{
-		Password: user.Password,
-		Token:    user.Token,
-	}})
+	updateResult, err := u.collection.UpdateOne(c, bson.M{"_id": objectId}, bson.M{"$set": updateUserDto})
 	if err != nil {
 		return nil, err
 	}
 	if updateResult.ModifiedCount == 0 {
 		return nil, fmt.Errorf("user not found")
 	}
-	return user, nil
+	return u.Get(c, id)
 }

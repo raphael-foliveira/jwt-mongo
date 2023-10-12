@@ -83,7 +83,10 @@ func (u *Users) Login(c context.Context, dto schemas.UserLogin) (*schemas.LoginR
 		return nil, err
 	}
 	user.Token = token
-	if _, err := u.repo.Update(c, user); err != nil {
+	if _, err := u.repo.Update(c, user.ID, &schemas.UpdateUser{
+		Password: user.Password,
+		Token:    user.Token,
+	}); err != nil {
 		return nil, err
 	}
 	return &schemas.LoginResponse{
