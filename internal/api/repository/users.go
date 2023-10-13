@@ -39,14 +39,7 @@ func (u *mongoUsers) Create(c context.Context, dto schemas.CreateUser) (*models.
 	if !ok {
 		return nil, fmt.Errorf("error casting inserted id")
 	}
-	return &models.User{
-		ID:        userId.Hex(),
-		Username:  dto.Username,
-		Email:     dto.Email,
-		CreatedAt: dto.CreatedAt,
-		Password:  dto.Password,
-		Token:     "",
-	}, nil
+	return u.Get(c, userId.Hex())
 }
 
 func (u *mongoUsers) List(c context.Context) ([]models.User, error) {
