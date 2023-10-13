@@ -21,11 +21,7 @@ func (u *Users) Create(c context.Context, dto schemas.CreateUser) (*schemas.User
 	if err != nil {
 		return nil, err
 	}
-	return &schemas.UserView{
-		Username:  user.Username,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
-	}, nil
+	return schemas.NewUserView(user), nil
 }
 
 func (u *Users) List(c context.Context) ([]schemas.UserView, error) {
@@ -35,11 +31,7 @@ func (u *Users) List(c context.Context) ([]schemas.UserView, error) {
 	}
 	usersView := []schemas.UserView{}
 	for _, user := range users {
-		usersView = append(usersView, schemas.UserView{
-			Username:  user.Username,
-			Email:     user.Email,
-			CreatedAt: user.CreatedAt,
-		})
+		usersView = append(usersView, *schemas.NewUserView(&user))
 	}
 	return usersView, nil
 
@@ -50,11 +42,7 @@ func (u *Users) Get(c context.Context, id string) (*schemas.UserView, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &schemas.UserView{
-		Username:  user.Username,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
-	}, nil
+	return schemas.NewUserView(user), nil
 }
 
 func (u *Users) Delete(c context.Context, id string) error {

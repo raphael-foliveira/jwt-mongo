@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Users interface {
@@ -22,27 +21,15 @@ type Users interface {
 	Update(c context.Context, id string, updateUserDto *schemas.UpdateUser) (*models.User, error)
 }
 
-type usersMongo struct {
+type mongoUsers struct {
 	collection *mongo.Collection
 }
 
-func NewUsers(dbClient *mongo.Client) *usersMongo {
-	collection := dbClient.Database("fibermongo").Collection("users")
-	_, err := collection.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys: bson.D{
-				{Key: "email", Value: 1},
-				{Key: "username", Value: 1},
-			},
-			Options: options.Index().SetUnique(true)})
-	if err != nil {
-		panic(err)
-	}
-	return &usersMongo{collection}
+func NewUsers(dbClient *mongo.Client) *mongoUsers {
+	return &mongoUsers{dbClient.Database("fibermongo").Collection("users")}
 }
 
-func (u *usersMongo) Create(c context.Context, dto schemas.CreateUser) (*models.User, error) {
+func (u *mongoUsers) Create(c context.Context, dto schemas.CreateUser) (*models.User, error) {
 	dto.CreatedAt = time.Now()
 	result, err := u.collection.InsertOne(c, dto)
 	if err != nil {
@@ -62,7 +49,7 @@ func (u *usersMongo) Create(c context.Context, dto schemas.CreateUser) (*models.
 	}, nil
 }
 
-func (u *usersMongo) List(c context.Context) ([]models.User, error) {
+func (u *mongoUsers) List(c context.Context) ([]models.User, error) {
 	var users []models.User
 	cursor, err := u.collection.Find(c, bson.M{})
 	if err != nil {
@@ -74,7 +61,7 @@ func (u *usersMongo) List(c context.Context) ([]models.User, error) {
 	return users, nil
 }
 
-func (u *usersMongo) Get(c context.Context, id string) (*models.User, error) {
+func (u *mongoUsers) Get(c context.Context, id string) (*models.User, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
@@ -86,7 +73,7 @@ func (u *usersMongo) Get(c context.Context, id string) (*models.User, error) {
 	return &user, nil
 }
 
-func (u *usersMongo) GetByEmail(c context.Context, email string) (*models.User, error) {
+func (u *mongoUsers) GetByEmail(c context.Context, email string) (*models.User, error) {
 	var user models.User
 	if err := u.collection.FindOne(c, bson.M{"email": email}).Decode(&user); err != nil {
 		return nil, err
@@ -94,7 +81,7 @@ func (u *usersMongo) GetByEmail(c context.Context, email string) (*models.User, 
 	return &user, nil
 }
 
-func (u *usersMongo) Delete(c context.Context, id string) error {
+func (u *mongoUsers) Delete(c context.Context, id string) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -106,7 +93,7 @@ func (u *usersMongo) Delete(c context.Context, id string) error {
 	return err
 }
 
-func (u *usersMongo) Update(c context.Context, id string, updateUserDto *schemas.UpdateUser) (*models.User, error) {
+func (u *mongoUsers) Update(c context.Context, id string, updateUserDto *schemas.UpdateUser) (*models.User, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
