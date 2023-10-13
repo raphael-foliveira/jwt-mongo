@@ -17,15 +17,32 @@ func NewUsers(repo repository.Users) *Users {
 }
 
 func (u *Users) Create(c context.Context, dto schemas.CreateUser) (*schemas.UserView, error) {
-	return u.repo.Create(c, dto)
+	user, err := u.repo.Create(c, dto)
+	if err != nil {
+		return nil, err
+	}
+	return schemas.NewUserView(user), nil
 }
 
 func (u *Users) List(c context.Context) ([]schemas.UserView, error) {
-	return u.repo.List(c)
+	users, err := u.repo.List(c)
+	if err != nil {
+		return nil, err
+	}
+	usersView := []schemas.UserView{}
+	for _, user := range users {
+		usersView = append(usersView, *schemas.NewUserView(&user))
+	}
+	return usersView, nil
+
 }
 
 func (u *Users) Get(c context.Context, id string) (*schemas.UserView, error) {
-	return u.repo.Get(c, id)
+	user, err := u.repo.Get(c, id)
+	if err != nil {
+		return nil, err
+	}
+	return schemas.NewUserView(user), nil
 }
 
 func (u *Users) Delete(c context.Context, id string) error {
@@ -53,11 +70,32 @@ func (u *Users) Login(c context.Context, dto schemas.UserLogin) (*schemas.LoginR
 	if err != nil {
 		return nil, err
 	}
+	user.Token = token
+	if _, err := u.repo.Update(c, user.ID, &schemas.UpdateUser{
+		Password: user.Password,
+		Token:    user.Token,
+	}); err != nil {
+		return nil, err
+	}
 	return &schemas.LoginResponse{
 		Token: token,
 	}, nil
 }
 
 func (u *Users) CheckToken(c context.Context, token string) (*schemas.TokenPayload, error) {
-	return validateToken(token)
+	tokenPayload, err := validateToken(token)
+	if err != nil {
+		return nil, err
+	}
+	user, err := u.repo.GetByEmail(c, tokenPayload.Email)
+	if err != nil {
+		return nil, err
+	}
+	if user.Token != token {
+		return nil, &schemas.ApiErr{
+			Code:    http.StatusUnauthorized,
+			Message: "invalid token",
+		}
+	}
+	return tokenPayload, nil
 }

@@ -1,6 +1,10 @@
 package schemas
 
-import "time"
+import (
+	"time"
+
+	"github.com/raphael-foliveira/fiber-mongo/internal/api/models"
+)
 
 type CreateUser struct {
 	Username  string `json:"username"`
@@ -9,20 +13,23 @@ type CreateUser struct {
 	CreatedAt time.Time
 }
 
-type User struct {
-	ID        string    `bson:"_id" json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Password  string    `json:"password"`
-	CreatedAt time.Time `json:"created_at"`
-	Token     string     `json:"token"`
+type UpdateUser struct {
+	Password string `json:"password"`
+	Token    string `json:"token"`
 }
 
 type UserView struct {
-	ID        string    `bson:"_id" json:"id"`
 	Username  string    `json:"username"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+func NewUserView(user *models.User) *UserView {
+	return &UserView{
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+	}
 }
 
 type UserLogin struct {

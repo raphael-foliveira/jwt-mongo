@@ -12,7 +12,7 @@ var secret = os.Getenv("JWT_SECRET")
 
 func generateToken(payload schemas.TokenPayload) (string, error) {
 	payload.IssuedAt = time.Now()
-	payload.Expires = time.Now().Add(time.Second * 5)
+	payload.Expires = time.Now().Add(time.Hour * 5)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":   payload.Sub,
 		"email": payload.Email,

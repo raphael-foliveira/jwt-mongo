@@ -5,42 +5,31 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/raphael-foliveira/fiber-mongo/internal/api/models"
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/schemas"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Users interface {
-	Create(c context.Context, dto schemas.CreateUser) (*schemas.UserView, error)
-	List(c context.Context) ([]schemas.UserView, error)
-	Get(c context.Context, id string) (*schemas.UserView, error)
-	GetByEmail(c context.Context, email string) (*schemas.User, error)
+	Create(c context.Context, dto schemas.CreateUser) (*models.User, error)
+	List(c context.Context) ([]models.User, error)
+	Get(c context.Context, id string) (*models.User, error)
+	GetByEmail(c context.Context, email string) (*models.User, error)
 	Delete(c context.Context, id string) error
+	Update(c context.Context, id string, updateUserDto *schemas.UpdateUser) (*models.User, error)
 }
 
-type usersMongo struct {
+type mongoUsers struct {
 	collection *mongo.Collection
 }
 
-func NewUsers(dbClient *mongo.Client) *usersMongo {
-	collection := dbClient.Database("fibermongo").Collection("users")
-	_, err := collection.Indexes().CreateOne(
-		context.Background(),
-		mongo.IndexModel{
-			Keys: bson.D{
-				{Key: "email", Value: 1},
-				{Key: "username", Value: 1},
-			},
-			Options: options.Index().SetUnique(true)})
-	if err != nil {
-		panic(err)
-	}
-	return &usersMongo{collection}
+func NewUsers(dbClient *mongo.Client) *mongoUsers {
+	return &mongoUsers{dbClient.Database("fibermongo").Collection("users")}
 }
 
-func (u *usersMongo) Create(c context.Context, dto schemas.CreateUser) (*schemas.UserView, error) {
+func (u *mongoUsers) Create(c context.Context, dto schemas.CreateUser) (*models.User, error) {
 	dto.CreatedAt = time.Now()
 	result, err := u.collection.InsertOne(c, dto)
 	if err != nil {
@@ -50,16 +39,11 @@ func (u *usersMongo) Create(c context.Context, dto schemas.CreateUser) (*schemas
 	if !ok {
 		return nil, fmt.Errorf("error casting inserted id")
 	}
-	return &schemas.UserView{
-		ID:        userId.Hex(),
-		Username:  dto.Username,
-		Email:     dto.Email,
-		CreatedAt: dto.CreatedAt,
-	}, nil
+	return u.Get(c, userId.Hex())
 }
 
-func (u *usersMongo) List(c context.Context) ([]schemas.UserView, error) {
-	var users []schemas.UserView
+func (u *mongoUsers) List(c context.Context) ([]models.User, error) {
+	var users []models.User
 	cursor, err := u.collection.Find(c, bson.M{})
 	if err != nil {
 		return nil, err
@@ -70,27 +54,27 @@ func (u *usersMongo) List(c context.Context) ([]schemas.UserView, error) {
 	return users, nil
 }
 
-func (u *usersMongo) Get(c context.Context, id string) (*schemas.UserView, error) {
+func (u *mongoUsers) Get(c context.Context, id string) (*models.User, error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err
 	}
-	var user schemas.UserView
+	var user models.User
 	if err := u.collection.FindOne(c, bson.M{"_id": objectId}).Decode(&user); err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
-func (u *usersMongo) GetByEmail(c context.Context, email string) (*schemas.User, error) {
-	var user schemas.User
+func (u *mongoUsers) GetByEmail(c context.Context, email string) (*models.User, error) {
+	var user models.User
 	if err := u.collection.FindOne(c, bson.M{"email": email}).Decode(&user); err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
-func (u *usersMongo) Delete(c context.Context, id string) error {
+func (u *mongoUsers) Delete(c context.Context, id string) error {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -100,4 +84,19 @@ func (u *usersMongo) Delete(c context.Context, id string) error {
 		return fmt.Errorf("user not found")
 	}
 	return err
+}
+
+func (u *mongoUsers) Update(c context.Context, id string, updateUserDto *schemas.UpdateUser) (*models.User, error) {
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	updateResult, err := u.collection.UpdateOne(c, bson.M{"_id": objectId}, bson.M{"$set": updateUserDto})
+	if err != nil {
+		return nil, err
+	}
+	if updateResult.ModifiedCount == 0 {
+		return nil, fmt.Errorf("user not found")
+	}
+	return u.Get(c, id)
 }
