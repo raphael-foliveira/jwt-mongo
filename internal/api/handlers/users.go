@@ -8,20 +8,16 @@ import (
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/service"
 )
 
-type Users struct {
-	service *service.Users
-}
+var UsersHandler = &Users{}
 
-func NewUsers(service *service.Users) *Users {
-	return &Users{service}
-}
+type Users struct{}
 
 func (u *Users) Create(c *fiber.Ctx) error {
 	var createUserDto schemas.CreateUser
 	if err := c.BodyParser(&createUserDto); err != nil {
 		return err
 	}
-	result, err := u.service.Create(c.Context(), createUserDto)
+	result, err := service.UsersService.Create(c.Context(), createUserDto)
 	if err != nil {
 		return &schemas.ApiErr{
 			Code:    http.StatusConflict,
@@ -32,7 +28,7 @@ func (u *Users) Create(c *fiber.Ctx) error {
 }
 
 func (u *Users) List(c *fiber.Ctx) error {
-	users, err := u.service.List(c.Context())
+	users, err := service.UsersService.List(c.Context())
 	if err != nil {
 		return err
 	}
@@ -40,7 +36,7 @@ func (u *Users) List(c *fiber.Ctx) error {
 }
 
 func (u *Users) Get(c *fiber.Ctx) error {
-	user, err := u.service.Get(c.Context(), c.Params("id"))
+	user, err := service.UsersService.Get(c.Context(), c.Params("id"))
 	if err != nil {
 		return &schemas.ApiErr{
 			Code:    http.StatusNotFound,
@@ -51,7 +47,7 @@ func (u *Users) Get(c *fiber.Ctx) error {
 }
 
 func (u *Users) Delete(c *fiber.Ctx) error {
-	if err := u.service.Delete(c.Context(), c.Params("id")); err != nil {
+	if err := service.UsersService.Delete(c.Context(), c.Params("id")); err != nil {
 		return err
 	}
 	return c.SendStatus(http.StatusNoContent)
@@ -66,7 +62,7 @@ func (u *Users) Login(c *fiber.Ctx) error {
 	if err := c.BodyParser(&loginDto); err != nil {
 		return err
 	}
-	token, err := u.service.Login(c.Context(), loginDto)
+	token, err := service.UsersService.Login(c.Context(), loginDto)
 	if err != nil {
 		return err
 	}
@@ -78,7 +74,7 @@ func (u *Users) Authenticate(c *fiber.Ctx) error {
 	if err := c.BodyParser(&token); err != nil {
 		return err
 	}
-	tokenPayload, err := u.service.CheckToken(c.Context(), token.Token)
+	tokenPayload, err := service.UsersService.CheckToken(c.Context(), token.Token)
 	if err != nil {
 		return err
 	}

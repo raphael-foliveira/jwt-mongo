@@ -1,16 +1,18 @@
 package service
 
 import (
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/schemas"
+	"github.com/raphael-foliveira/fiber-mongo/internal/cfg"
 )
 
-var secret = os.Getenv("JWT_SECRET")
+var jwtService = &Jwt{}
 
-func generateToken(payload schemas.TokenPayload) (string, error) {
+type Jwt struct{}
+
+func (js *Jwt) generateToken(payload schemas.TokenPayload) (string, error) {
 	payload.IssuedAt = time.Now()
 	payload.Expires = time.Now().Add(time.Hour * 5)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -19,13 +21,13 @@ func generateToken(payload schemas.TokenPayload) (string, error) {
 		"exp":   payload.Expires,
 		"iat":   payload.IssuedAt,
 	})
-	return token.SignedString([]byte(secret))
+	return token.SignedString([]byte(cfg.JwtSecret))
 }
 
-func validateToken(token string) (*schemas.TokenPayload, error) {
+func (js *Jwt) validateToken(token string) (*schemas.TokenPayload, error) {
 	payload := &schemas.TokenPayload{}
 	_, err := jwt.ParseWithClaims(token, payload, func(token *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
+		return []byte(cfg.JwtSecret), nil
 	})
 	if err != nil {
 		return nil, err

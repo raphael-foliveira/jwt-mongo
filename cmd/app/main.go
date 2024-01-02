@@ -12,16 +12,15 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		panic("No .env file found")
 	}
-	mongoClient, err := database.StartMongo()
-	if err != nil {
+	if err := database.StartMongo(); err != nil {
 		panic(err)
 	}
 	defer func() {
-		if err := mongoClient.Disconnect(context.Background()); err != nil {
+		if err := database.MongoClient.Disconnect(context.Background()); err != nil {
 			panic(err)
 		}
 	}()
-	if err := api.NewServer(mongoClient).Start(); err != nil {
+	if err := api.NewServer().Start(); err != nil {
 		panic(err)
 	}
 }

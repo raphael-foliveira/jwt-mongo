@@ -9,18 +9,23 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func StartMongo() (*mongo.Client, error) {
+var MongoClient *mongo.Client
+var MongoDb *mongo.Database
+var UsersCollection *mongo.Collection
+
+func StartMongo() (err error) {
 	mongoUrl := os.Getenv("MONGO_URL")
-	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoUrl))
+	MongoClient, err = mongo.Connect(context.Background(), options.Client().ApplyURI(mongoUrl))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return createIndexes(mongoClient)
+	MongoDb = MongoClient.Database("fibermongo")
+	getCollections()
+	return createIndexes()
 }
 
-func createIndexes(mongoClient *mongo.Client) (*mongo.Client, error) {
-	db := mongoClient.Database("fibermongo")
-	_, err := db.Collection("users").Indexes().CreateOne(
+func createIndexes() (err error) {
+	_, err = UsersCollection.Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
 			Keys: bson.D{
@@ -28,5 +33,10 @@ func createIndexes(mongoClient *mongo.Client) (*mongo.Client, error) {
 				{Key: "username", Value: 1},
 			},
 			Options: options.Index().SetUnique(true)})
-	return mongoClient, err
+	return err
+}
+
+func getCollections() (err error) {
+	UsersCollection = MongoDb.Collection("users")
+	return nil
 }

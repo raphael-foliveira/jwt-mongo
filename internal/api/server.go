@@ -5,38 +5,31 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/handlers"
-	"github.com/raphael-foliveira/fiber-mongo/internal/api/repository"
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/routes"
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/schemas"
-	"github.com/raphael-foliveira/fiber-mongo/internal/api/service"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Server struct {
-	app         *fiber.App
-	mongoClient *mongo.Client
+	app *fiber.App
 }
 
-func NewServer(c *mongo.Client) *Server {
+func NewServer() *Server {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: apiErrorHandler,
 	})
-	return &Server{app, c}
+	return &Server{app}
 }
 
 func (s *Server) Start() error {
 	s.app.Use(cors.New())
 	s.app.Use(logger.New())
-	s.app.Get("/", handlers.HealthCheck)
-	s.Bootstrap()
+	s.mountRoutes()
 	return s.app.Listen(":3000")
 }
 
-func (s *Server) Bootstrap() {
-	usersRepo := repository.NewUsers(s.mongoClient)
-	usersService := service.NewUsers(usersRepo)
-	usersHandler := handlers.NewUsers(usersService)
-	routes.Users(s.app, usersHandler)
+func (s *Server) mountRoutes() {
+	s.app.Get("/", handlers.HealthCheck)
+	routes.Users(s.app)
 }
 
 func apiErrorHandler(c *fiber.Ctx, err error) error {
