@@ -9,9 +9,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var MongoClient *mongo.Client
-var MongoDb *mongo.Database
-var UsersCollection *mongo.Collection
+var (
+	MongoClient     *mongo.Client
+	MongoDb         *mongo.Database
+	UsersCollection *mongo.Collection
+)
 
 func StartMongo() (err error) {
 	mongoUrl := os.Getenv("MONGO_URL")
