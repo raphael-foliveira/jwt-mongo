@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -14,10 +13,7 @@ var (
 	MongoClient *mongo.Client
 )
 
-func init() {
-	if err := godotenv.Load(); err != nil {
-		panic(err)
-	}
+func Start() {
 	mongoUrl := os.Getenv("MONGO_URL")
 	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoUrl))
 	if err != nil {
