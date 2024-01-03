@@ -8,11 +8,18 @@ import (
 	"github.com/raphael-foliveira/fiber-mongo/internal/cfg"
 )
 
-var jwtService = &Jwt{}
+type JwtService interface {
+	generateToken(payload schemas.TokenPayload) (string, error)
+	validateToken(token string) (*schemas.TokenPayload, error)
+}
 
-type Jwt struct{}
+type jwtService struct{}
 
-func (js *Jwt) generateToken(payload schemas.TokenPayload) (string, error) {
+func NewJwtService() JwtService {
+	return &jwtService{}
+}
+
+func (js *jwtService) generateToken(payload schemas.TokenPayload) (string, error) {
 	payload.IssuedAt = time.Now()
 	payload.Expires = time.Now().Add(time.Hour * 5)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -24,7 +31,7 @@ func (js *Jwt) generateToken(payload schemas.TokenPayload) (string, error) {
 	return token.SignedString([]byte(cfg.JwtSecret))
 }
 
-func (js *Jwt) validateToken(token string) (*schemas.TokenPayload, error) {
+func (js *jwtService) validateToken(token string) (*schemas.TokenPayload, error) {
 	payload := &schemas.TokenPayload{}
 	_, err := jwt.ParseWithClaims(token, payload, func(token *jwt.Token) (interface{}, error) {
 		return []byte(cfg.JwtSecret), nil

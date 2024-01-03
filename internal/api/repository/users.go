@@ -12,10 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func NewUsersRepository(collection *mongo.Collection) Users {
-	return &mongoUsers{collection}
-}
-
 type Users interface {
 	Create(c context.Context, dto schemas.CreateUser) (*models.User, error)
 	List(c context.Context) ([]models.User, error)
@@ -27,6 +23,10 @@ type Users interface {
 
 type mongoUsers struct {
 	collection *mongo.Collection
+}
+
+func NewUsersRepository(collection *mongo.Collection) Users {
+	return &mongoUsers{collection}
 }
 
 func (u *mongoUsers) Create(c context.Context, dto schemas.CreateUser) (*models.User, error) {

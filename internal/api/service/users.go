@@ -18,11 +18,12 @@ type Users interface {
 }
 
 type users struct {
-	repo repository.Users
+	repo       repository.Users
+	jwtService JwtService
 }
 
-func NewUsersService(repository repository.Users) Users {
-	return &users{repository}
+func NewUsersService(repository repository.Users, jwtService JwtService) Users {
+	return &users{repository, jwtService}
 }
 
 func (u *users) Create(c context.Context, dto schemas.CreateUser) (*schemas.UserDto, error) {
@@ -72,7 +73,7 @@ func (u *users) Login(c context.Context, dto schemas.UserLogin) (*schemas.LoginR
 			Message: "invalid credentials",
 		}
 	}
-	token, err := jwtService.generateToken(schemas.TokenPayload{
+	token, err := u.jwtService.generateToken(schemas.TokenPayload{
 		Sub:   user.ID,
 		Email: user.Email,
 	})
@@ -92,7 +93,7 @@ func (u *users) Login(c context.Context, dto schemas.UserLogin) (*schemas.LoginR
 }
 
 func (u *users) CheckToken(c context.Context, token string) (*schemas.TokenPayload, error) {
-	tokenPayload, err := jwtService.validateToken(token)
+	tokenPayload, err := u.jwtService.validateToken(token)
 	if err != nil {
 		return nil, err
 	}
