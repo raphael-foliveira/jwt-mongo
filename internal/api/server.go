@@ -9,25 +9,26 @@ import (
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/routes"
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/schemas"
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/service"
-	"github.com/raphael-foliveira/fiber-mongo/internal/database"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Server struct {
 	app *fiber.App
+	db  *mongo.Database
 }
 
-func NewServer() *Server {
+func NewServer(db *mongo.Database) *Server {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: apiErrorHandler,
 	})
-	return &Server{app}
+	return &Server{app, db}
 }
 
 func (s *Server) Start() error {
 	s.app.Use(cors.New())
 	s.app.Use(logger.New())
 
-	repositories := repository.StartRepositories(database.MongoClient.Database("fibermongo"))
+	repositories := repository.StartRepositories(s.db)
 	services := service.StartServices(repositories)
 	handlers := handlers.StartHandlers(services)
 

@@ -9,18 +9,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var (
-	MongoClient *mongo.Client
-)
-
-func Start() {
+func Start() *mongo.Client {
 	mongoUrl := os.Getenv("MONGO_URL")
 	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoUrl))
 	if err != nil {
 		panic(err)
 	}
 	createIndexes(mongoClient.Database("fibermongo"))
-	MongoClient = mongoClient
+	return mongoClient
 }
 
 func createIndexes(database *mongo.Database) (err error) {
