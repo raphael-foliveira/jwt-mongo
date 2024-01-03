@@ -12,13 +12,13 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		panic(err)
 	}
-	dbClient := database.Start()
+	database := database.Start()
 	defer func() {
-		if err := dbClient.Disconnect(context.Background()); err != nil {
+		if err := database.Client().Disconnect(context.Background()); err != nil {
 			panic(err)
 		}
 	}()
-	if err := api.NewServer(dbClient.Database("fibermongo")).Start(); err != nil {
+	if err := api.NewServer(database).Start(); err != nil {
 		panic(err)
 	}
 }
