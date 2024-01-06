@@ -9,18 +9,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func StartMongo() (*mongo.Client, error) {
+func Start() *mongo.Database {
 	mongoUrl := os.Getenv("MONGO_URL")
 	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoUrl))
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return createIndexes(mongoClient)
+	database := mongoClient.Database("fibermongo")
+	createIndexes(database)
+	return database
 }
 
-func createIndexes(mongoClient *mongo.Client) (*mongo.Client, error) {
-	db := mongoClient.Database("fibermongo")
-	_, err := db.Collection("users").Indexes().CreateOne(
+func createIndexes(database *mongo.Database) {
+	_, err := database.Collection("users").Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
 			Keys: bson.D{
@@ -28,5 +29,7 @@ func createIndexes(mongoClient *mongo.Client) (*mongo.Client, error) {
 				{Key: "username", Value: 1},
 			},
 			Options: options.Index().SetUnique(true)})
-	return mongoClient, err
+	if err != nil {
+		panic(err)
+	}
 }

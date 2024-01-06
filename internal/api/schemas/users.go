@@ -18,14 +18,16 @@ type UpdateUser struct {
 	Token    string `json:"token"`
 }
 
-type UserView struct {
+type UserDto struct {
+	ID        string    `json:"id"`
 	Username  string    `json:"username"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func NewUserView(user *models.User) *UserView {
-	return &UserView{
+func UserToDto(user *models.User) *UserDto {
+	return &UserDto{
+		ID:        user.ID,
 		Username:  user.Username,
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,

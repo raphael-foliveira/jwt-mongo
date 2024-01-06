@@ -13,30 +13,33 @@ import (
 )
 
 type Server struct {
-	app         *fiber.App
-	mongoClient *mongo.Client
+	app *fiber.App
+	db  *mongo.Database
 }
 
-func NewServer(c *mongo.Client) *Server {
+func NewServer(db *mongo.Database) *Server {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: apiErrorHandler,
 	})
-	return &Server{app, c}
+	return &Server{app, db}
 }
 
 func (s *Server) Start() error {
 	s.app.Use(cors.New())
 	s.app.Use(logger.New())
-	s.app.Get("/", handlers.HealthCheck)
-	s.Bootstrap()
+
+	repositories := repository.StartRepositories(s.db)
+	services := service.StartServices(repositories)
+	handlers := handlers.StartHandlers(services)
+
+	s.mountRoutes(handlers)
+
 	return s.app.Listen(":3000")
 }
 
-func (s *Server) Bootstrap() {
-	usersRepo := repository.NewUsers(s.mongoClient)
-	usersService := service.NewUsers(usersRepo)
-	usersHandler := handlers.NewUsers(usersService)
-	routes.Users(s.app, usersHandler)
+func (s *Server) mountRoutes(h *handlers.Handlers) {
+	s.app.Get("/", h.HealthCheck.HealthCheck)
+	routes.Users(s.app, h.Users)
 }
 
 func apiErrorHandler(c *fiber.Ctx, err error) error {

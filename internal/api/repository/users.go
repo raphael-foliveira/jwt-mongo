@@ -25,8 +25,8 @@ type mongoUsers struct {
 	collection *mongo.Collection
 }
 
-func NewUsers(dbClient *mongo.Client) *mongoUsers {
-	return &mongoUsers{dbClient.Database("fibermongo").Collection("users")}
+func NewUsersRepository(collection *mongo.Collection) Users {
+	return &mongoUsers{collection}
 }
 
 func (u *mongoUsers) Create(c context.Context, dto schemas.CreateUser) (*models.User, error) {

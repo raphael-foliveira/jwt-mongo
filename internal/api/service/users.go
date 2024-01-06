@@ -8,48 +8,58 @@ import (
 	"github.com/raphael-foliveira/fiber-mongo/internal/api/schemas"
 )
 
-type Users struct {
-	repo repository.Users
+type Users interface {
+	Create(c context.Context, dto schemas.CreateUser) (*schemas.UserDto, error)
+	List(c context.Context) ([]schemas.UserDto, error)
+	Get(c context.Context, id string) (*schemas.UserDto, error)
+	Delete(c context.Context, id string) error
+	Login(c context.Context, dto schemas.UserLogin) (*schemas.LoginResponse, error)
+	CheckToken(c context.Context, token string) (*schemas.TokenPayload, error)
 }
 
-func NewUsers(repo repository.Users) *Users {
-	return &Users{repo}
+type users struct {
+	repo       repository.Users
+	jwtService JwtService
 }
 
-func (u *Users) Create(c context.Context, dto schemas.CreateUser) (*schemas.UserView, error) {
+func NewUsersService(repository repository.Users, jwtService JwtService) Users {
+	return &users{repository, jwtService}
+}
+
+func (u *users) Create(c context.Context, dto schemas.CreateUser) (*schemas.UserDto, error) {
 	user, err := u.repo.Create(c, dto)
 	if err != nil {
 		return nil, err
 	}
-	return schemas.NewUserView(user), nil
+	return schemas.UserToDto(user), nil
 }
 
-func (u *Users) List(c context.Context) ([]schemas.UserView, error) {
+func (u *users) List(c context.Context) ([]schemas.UserDto, error) {
 	users, err := u.repo.List(c)
 	if err != nil {
 		return nil, err
 	}
-	usersView := []schemas.UserView{}
+	usersView := []schemas.UserDto{}
 	for _, user := range users {
-		usersView = append(usersView, *schemas.NewUserView(&user))
+		usersView = append(usersView, *schemas.UserToDto(&user))
 	}
 	return usersView, nil
 
 }
 
-func (u *Users) Get(c context.Context, id string) (*schemas.UserView, error) {
+func (u *users) Get(c context.Context, id string) (*schemas.UserDto, error) {
 	user, err := u.repo.Get(c, id)
 	if err != nil {
 		return nil, err
 	}
-	return schemas.NewUserView(user), nil
+	return schemas.UserToDto(user), nil
 }
 
-func (u *Users) Delete(c context.Context, id string) error {
+func (u *users) Delete(c context.Context, id string) error {
 	return u.repo.Delete(c, id)
 }
 
-func (u *Users) Login(c context.Context, dto schemas.UserLogin) (*schemas.LoginResponse, error) {
+func (u *users) Login(c context.Context, dto schemas.UserLogin) (*schemas.LoginResponse, error) {
 	user, err := u.repo.GetByEmail(c, dto.Email)
 	if err != nil {
 		return nil, &schemas.ApiErr{
@@ -63,7 +73,7 @@ func (u *Users) Login(c context.Context, dto schemas.UserLogin) (*schemas.LoginR
 			Message: "invalid credentials",
 		}
 	}
-	token, err := generateToken(schemas.TokenPayload{
+	token, err := u.jwtService.generateToken(schemas.TokenPayload{
 		Sub:   user.ID,
 		Email: user.Email,
 	})
@@ -82,8 +92,8 @@ func (u *Users) Login(c context.Context, dto schemas.UserLogin) (*schemas.LoginR
 	}, nil
 }
 
-func (u *Users) CheckToken(c context.Context, token string) (*schemas.TokenPayload, error) {
-	tokenPayload, err := validateToken(token)
+func (u *users) CheckToken(c context.Context, token string) (*schemas.TokenPayload, error) {
+	tokenPayload, err := u.jwtService.validateToken(token)
 	if err != nil {
 		return nil, err
 	}
